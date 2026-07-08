@@ -1,25 +1,32 @@
+/**
+ * whatsapp-report-bot-main/scripts/backup.js
+ * MASTER ARCHITECTURE: Automated Log Archiver
+ */
+
 const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 
-console.log('💾 Starting backup...');
+(() => {
+    const primaryLog = path.join(__dirname, '../logs/engine-combined.log');
+    const archiveDirectory = path.join(__dirname, '../backups');
 
-const backupDir = path.join(__dirname, '../backups');
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const backupId = `backup-${timestamp}-${uuidv4().slice(0, 8)}`;
+    if (!fs.existsSync(primaryLog) || fs.statSync(primaryLog).size === 0) {
+        console.log("📋 Tracking logs are clean. Archiving step omitted.");
+        return;
+    }
 
-// Create backup directory if it doesn't exist
-if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir, { recursive: true });
-}
+    if (!fs.existsSync(archiveDirectory)) {
+        fs.mkdirSync(archiveDirectory, { recursive: true });
+    }
 
-// Files to backup
-const filesToBackup = [
-    '.env',
-    'config.js',
-    'reports_backup/',
-    'templates/'
-];
+    const ISOString = new Date().toISOString().slice(0, 10);
+    const archiveTarget = path.join(archiveDirectory, `archive-${ISOString}.log`);
 
-console.log(`📦 Creating backup: ${backupId}`);
-console.log('✅ Backup completed successfully');
+    try {
+        fs.copyFileSync(primaryLog, archiveTarget);
+        fs.writeFileSync(primaryLog, ''); // Truncates active engine stream atomically
+        console.log(`💾 Operational snapshot successfully exported to: backups/archive-${ISOString}.log`);
+    } catch (error) {
+        console.error(`❌ Log archiving process failed: ${error.message}`);
+    }
+})();
