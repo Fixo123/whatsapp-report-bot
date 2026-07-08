@@ -1,23 +1,36 @@
+/**
+ * whatsapp-report-bot-main/scripts/stats.js
+ * MASTER ARCHITECTURE: System Metrics and Data Forensics Console
+ */
+
 const fs = require('fs');
 const path = require('path');
 
-console.log('📊 Bot Statistics');
-console.log('='.repeat(40));
+(() => {
+    const registryFile = path.join(__dirname, '../logs/engine-combined.log');
+    console.log("🔍 Running telemetry log analysis...");
 
-// Check if reports backup directory exists
-const reportsDir = path.join(__dirname, '../reports_backup');
-if (fs.existsSync(reportsDir)) {
-    const files = fs.readdirSync(reportsDir);
-    console.log(`   Reports backed up: ${files.length}`);
-} else {
-    console.log('   No reports backed up yet');
-}
+    if (!fs.existsSync(registryFile)) {
+        console.log("❌ Log tracking repository unavailable.");
+        return;
+    }
 
-// Check if .env exists
-if (fs.existsSync('.env')) {
-    console.log('   Configuration: ✅ Set');
-} else {
-    console.log('   Configuration: ❌ Missing');
-}
+    const logHistory = fs.readFileSync(registryFile, 'utf8').split('\n').filter(Boolean);
+    let successCount = 0, failCount = 0;
 
-console.log('\n💡 Use npm start to run the bot');
+    logHistory.forEach(record => {
+        if (record.includes('successfully processed')) successCount++;
+        if (record.includes('Fatal Engine Fault')) failCount++;
+    });
+
+    const combinedVolume = successCount + failCount || 1;
+    const performanceCoefficient = ((successCount / combinedVolume) * 100).toFixed(1);
+
+    console.log(`\n========================================`);
+    console.log(`📊 CORE OPERATIONAL TELEMETRY REPORT`);
+    console.log(`========================================`);
+    console.log(`📈 Success Volume      : ${successCount}`);
+    console.log(`📉 Interrupted Volume  : ${failCount}`);
+    console.log(`🛡️ Delivery Coefficient : ${performanceCoefficient}%`);
+    console.log(`========================================\n`);
+})();
